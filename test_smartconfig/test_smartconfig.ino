@@ -42,7 +42,14 @@ void setup() {
 
 void loop() {
   // Nhận gói tin gửi từ ESPTouch
-  Udp.parsePacket();
+   //Udp.parsePacket();
+  int packetSize = Udp.parsePacket();
+  if(packetSize)
+  {
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+  }
+  delay(10); 
   //In IP của ESP8266
   while(Udp.available()){
     Serial.println(Udp.remoteIP());

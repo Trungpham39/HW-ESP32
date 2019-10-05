@@ -12,7 +12,7 @@ String read_String(char add);
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  EEPROM.begin(512);
+  EEPROM.begin(512); // mở cổng EEPROM
   String data = "Pham Hieu Trung";
 
   Serial.print("Writing Data:");
@@ -28,7 +28,7 @@ void loop() {
   recivedData = read_String(10);
   Serial.print("Read Data:");
   Serial.println(recivedData);
-  delay(1000);
+  delay(1000); // delay toi thieu 5ms
 }
 //////doc  ghi data vao ô nhớ
 void writeString(char add,String data)
