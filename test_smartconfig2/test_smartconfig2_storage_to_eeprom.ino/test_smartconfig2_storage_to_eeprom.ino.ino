@@ -7,8 +7,8 @@ String pwdWifi;
 bool checkWifiStorage(){
   EEPROM.begin(512);
   //Read SSID from EEPROM
-  idWifi = readEEPROM(1);
-  pwdWifi = readEEPROM(2);
+  idWifi = readEEPROM(10);
+  pwdWifi = readEEPROM(11);
 
   if(idWifi.length() > 1 && pwdWifi.length() > 1){
     return true;
@@ -46,7 +46,7 @@ void writeEEPROM(char add,String data)
   EEPROM.commit();
 }
 
-char *stringToCharArray(String input){
+  char *stringToCharArray(String input){
   int stringLength = input.length();
   char output[stringLength+1];
   strcpy(output, input.c_str());
@@ -66,11 +66,11 @@ void wifiSetup(bool checkData){
     }
     Serial.println("Smartconfig done!");
     //add SSID & Pwd to EEPROM-----SSID storage to address 1------PWD storage to address 2
-    writeEEPROM(1, WiFi.SSID());
-    writeEEPROM(2, WiFi.psk());
+    writeEEPROM(10, WiFi.SSID());
+    writeEEPROM(11, WiFi.psk());
   }
 
-  WiFi.begin(stringToCharArray(idWifi), stringToCharArray(pwdWifi));
+  else WiFi.begin(stringToCharArray(idWifi), stringToCharArray(pwdWifi));
 
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
