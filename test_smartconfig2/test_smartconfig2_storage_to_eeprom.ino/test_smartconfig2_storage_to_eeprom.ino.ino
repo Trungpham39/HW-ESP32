@@ -1,21 +1,142 @@
 #include "WiFi.h"
 #include <EEPROM.h>
 
-String idWifi;
-String pwdWifi;
+String idWifi, pwdWifi;
+int ssidLength, pwdLength;
 
-bool checkWifiStorage(){
-  EEPROM.begin(512);
-  //Read SSID from EEPROM
-  idWifi = readEEPROM(1);
-  pwdWifi = readEEPROM(2);
+bool getWifiData(){
+  ssidLength = readEEPROM(10).toInt();
+  pwdLength = readEEPROM(13).toInt();
 
-  if(idWifi.length() > 1 && pwdWifi.length() > 1){
+  //Checking EEPROM data 
+  if(ssidLength > 0){
+    idWifi = readEEPROM(16);
+    pwdWifi = readEEPROM(16+ssidLength+1);
+    printWifiDetail();
     return true;
   }
-  else return false;
+  else {
+    printWifiDetail();
+    return false;
+  }
 }
 
+void printWifiDetail(){
+  Serial.print("SSID: ");
+  Serial.print(idWifi);
+  Serial.print(" Length: ");
+  Serial.println(ssidLength);
+
+  Serial.print("Pwd: ");
+  Serial.print(pwdWifi);
+  Serial.print(" Length: ");
+  Serial.println(pwdLength); 
+}
+
+void printWifiDetail1(){
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+  
+  Serial.print("Pwd: ");
+  Serial.println(WiFi.psk());
+  
+}
+
+bool setupWifi(){
+  EEPROM.begin(512);
+  bool wifiStorage = getWifiData();
+  if(wifiStorage){
+    if(idWifi.length() > 1){
+      //Connect wifi with wifi data from EEPROM
+      int count = 0;
+      WiFi.begin(idWifi.c_str(), pwdWifi.c_str());
+      while(WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(1000);
+        count++; 
+        //Try to connect wifi in 15s
+        if(count==15){
+          Serial.println("\nTime out! Can't connect lastest Wifi");
+          Serial.println("Begin SmartConfig!");
+          return setupSmartConfig();
+        }
+      }
+    }
+  }
+  else return setupSmartConfig();
+}
+
+bool setupSmartConfig(){
+  //initial smartconfig if don't have wifi storage
+    Serial.println("Initial SmartConfig !!!");
+    WiFi.beginSmartConfig();
+    int count = 0;
+    while (!WiFi.smartConfigDone()) {
+      delay(500);
+      Serial.print(".");
+      count ++;
+      //If over 60 seconds SmartConfig can't setup success. Cancel SmartConfig
+      if(count == 120){
+        Serial.println("\nTime out! Failed to connect Wifi with SmartConfig!");
+        WiFi.stopSmartConfig();
+        return WiFi.smartConfigDone();
+      }
+    }
+    Serial.println("Smartconfig done!");
+    //add SSID & Pwd to EEPROM-----SSID storage to address 1------PWD storage to address 2
+    
+    Serial.print("connecting to wifi...");
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(1000);
+      Serial.print(".");
+      count++;
+      if(count == 60)
+      {
+        Serial.println("Time out! Can't connect to wifi with SmartConfig");
+        return false;
+      }
+    }
+    Serial.println("\ndone!");
+    printWifiDetail1();
+    int ssidLength = WiFi.SSID().length();
+    int pwdLength = WiFi.psk().length();
+    
+    String sizeSSID = fixValue(ssidLength);
+    String sizePwd = fixValue(pwdLength);
+
+    clearLastedEEPROM();
+
+    writeEEPROM(10, sizeSSID);
+    writeEEPROM(13, sizePwd);
+
+    writeEEPROM(16, WiFi.SSID());
+    writeEEPROM(16 + ssidLength + 1, WiFi.psk());
+    
+    return WiFi.smartConfigDone();
+}
+
+String fixValue(int input)
+{
+  String output; 
+  if(input < 10){
+    output.concat("0");
+    output.concat(input); 
+  }
+  else output.concat(input);
+  Serial.print("Output: ");
+  Serial.println(output);
+  return output;
+}
+
+void clearLastedEEPROM(){
+  int lastestAdd = 16+ssidLength+pwdLength;
+  Serial.print("Lastest address: ");
+  Serial.println(lastestAdd);
+  for(int i = 10; i <= lastestAdd; i++){
+    EEPROM.write(i,'\0');
+  }
+  EEPROM.commit();
+}
 
 String readEEPROM(char add)
 {
@@ -46,55 +167,24 @@ void writeEEPROM(char add,String data)
   EEPROM.commit();
 }
 
-char *stringToCharArray(String input){
-  int stringLength = input.length();
-  char output[stringLength+1];
-  strcpy(output, input.c_str());
-  return output;
-}
-
-void wifiSetup(bool checkData){
-  Serial.println("");
-  WiFi.mode(WIFI_STA);
-  delay(200);
-  if (!checkData){
-    //initial smartconfig if don't have wifi storage
-    WiFi.beginSmartConfig();
-    while (!WiFi.smartConfigDone()) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println("Smartconfig done!");
-    //add SSID & Pwd to EEPROM-----SSID storage to address 1------PWD storage to address 2
-    writeEEPROM(1, WiFi.SSID());
-    writeEEPROM(2, WiFi.psk());
-  }
-
-  WiFi.begin(stringToCharArray(idWifi), stringToCharArray(pwdWifi));
-
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(1000);
-  }
-  Serial.println();
-
-  // Xuất thông báo đã kết nối thành công
-  Serial.println("Ket noi thanh cong!");
-  // Xuất địa chỉ IP được cấp bởi thiết bị router
-  Serial.print("Dia chi IP: ");
-  Serial.println(WiFi.localIP());
-}
-
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   delay(100);
   
-  bool checkData = checkWifiStorage();
-  wifiSetup(checkData);
+  bool checkWifiState = setupWifi();
+  while(!checkWifiState){
+    checkWifiState = setupWifi();
+  }
+  if(checkWifiState) {
+    delay(300);
+    Serial.println("Success to connect!");
+    // Xuất địa chỉ IP được cấp bởi thiết bị router
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
 }
