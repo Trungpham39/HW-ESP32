@@ -34,9 +34,9 @@ void setup() {
 //    Server setup
 //    setStaticIP(ip, gateway, subnet);
 //    initialServer(80);
-    Serial.print("IP address: ");
+    Serial.print("IP address: \r");
     Serial.println(WiFi.localIP());
-    Serial.print("Server state: "); Serial.println(isServerOn());    
+    Serial.print("Server state: \r"); Serial.println(isServerOn());    
     //Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   }
 }
