@@ -25,8 +25,6 @@ void setup() {
     delay(300);
     Serial.println("Success to connect!");
     // Xuất địa chỉ IP được cấp bởi thiết bị router
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
     IPAddress ip(WiFi.localIP());
     IPAddress gateway(192,168,1,1);
     IPAddress subnet(255,255,255,0);
@@ -34,6 +32,8 @@ void setup() {
 //    Server setup
     setStaticIP(ip, gateway, subnet);
     initialServer();
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
     Serial.print("Server state: "); Serial.println(isServerOn());    
     //Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   }
@@ -41,14 +41,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  //Firebase.setInt("/int",random(0, 30));
-  //messageHandle();
-
-  //Test messageHandle function
-//  clientSetMessage("123456");
-//  delay(1000);
-//  clientSetMessage("1234567");
-//  if(isServerOn()){
     messageHandle();
-//  }
+
 }
